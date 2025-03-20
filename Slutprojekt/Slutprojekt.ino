@@ -1,4 +1,7 @@
 #include "Adafruit_VL53L0X.h"
+#include <Servo.h>
+
+Servo myservo; 
 
 Adafruit_VL53L0X laser = Adafruit_VL53L0X();
 
@@ -10,6 +13,7 @@ float td = 2.0;
 
 void setup() {
   Serial.begin(115200);
+  myservo.attach(10);
   while (!Serial) {
     delay(1);
   }
@@ -22,7 +26,7 @@ void setup() {
 
 void loop() {
 
-  update();
+  myservo.write(update());
   delay(50);
 }
 
@@ -37,7 +41,8 @@ int update() {
   p = varde.RangeMilliMeter;
   i = 0.05 * p;
 
-
   u = tp * (p + i / ti + td * d);
+  int maped_value = map(u, 0, 1000, 0, 90);
   Serial.println(u);
+  Serial.println(maped_value);
 }
