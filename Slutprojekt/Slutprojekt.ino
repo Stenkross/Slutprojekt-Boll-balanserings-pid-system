@@ -1,19 +1,23 @@
 #include "Adafruit_VL53L0X.h"
 #include <Servo.h>
 
-Servo myservo; 
+Servo servo; 
 
 Adafruit_VL53L0X laser = Adafruit_VL53L0X();
-
+float error = 0;
+float maped_value = 0;
+float pid = 0;
 float p = 0, i = 0, d = 0, u = 0;
-
-float tp = 2.0;  
+float distanse = 170;
+float tp = 0.15;
 float ti = 0.5; 
-float td = 2.0; 
+float td = 1.0; 
 
 void setup() {
   Serial.begin(115200);
-  myservo.attach(10);
+  servo.attach(10);
+  pinMode(10, OUTPUT); 
+  
   while (!Serial) {
     delay(1);
   }
@@ -26,7 +30,8 @@ void setup() {
 
 void loop() {
 
-  myservo.write(update());
+  servo.write();
+  update();
   delay(50);
 }
 
@@ -34,15 +39,14 @@ int update() {
   VL53L0X_RangingMeasurementData_t varde;
   laser.rangingTest(&varde, false);
   if (varde.RangeStatus != 4) {
-    Serial.println(varde.RangeMilliMeter);
+    error = (varde.RangeMilliMeter - distanse);
   }
 
-  d = (p - varde.RangeMilliMeter)/0.05;
-  p = varde.RangeMilliMeter;
-  i = 0.05 * p;
+  d = (error - (varde.RangeMilliMeter - 20));
+  i += error;
+ 
+pid = (error * tp) + (ti * d) + (td * i); 
 
-  u = tp * (p + i / ti + td * d);
-  int maped_value = map(u, 0, 1000, 0, 90);
-  Serial.println(u);
-  Serial.println(maped_value);
+  Serial.print("Update:");
+  Serial.println(pid); 
 }
