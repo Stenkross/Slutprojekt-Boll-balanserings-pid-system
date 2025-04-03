@@ -11,7 +11,7 @@ float p = 0, i = 0, d = 0, u = 0;
 float distanse = 170;
 float tp = 0.15;
 float ti = 0.5; 
-float td = 1.0; 
+float td = 0.15; 
 
 void setup() {
   Serial.begin(115200);
@@ -29,24 +29,21 @@ void setup() {
 }
 
 void loop() {
-
-  servo.write();
-  update();
+  servo.write(map(update(), -130, 130, 120, 0));
   delay(50);
 }
 
-int update() {
+float update() {
   VL53L0X_RangingMeasurementData_t varde;
   laser.rangingTest(&varde, false);
   if (varde.RangeStatus != 4) {
-    error = (varde.RangeMilliMeter - distanse);
+    error = (varde.RangeMilliMeter - distanse)/10;
+    if error > 300 /* låg pass filter, ksk högpass */
+   
   }
 
-  d = (error - (varde.RangeMilliMeter - 20));
-  i += error;
- 
-pid = (error * tp) + (ti * d) + (td * i); 
-
-  Serial.print("Update:");
-  Serial.println(pid); 
+  d = (error - (varde.RangeMilliMeter - 20)/10);
+  i += (error);
+  Serial.println(pid);
+  return pid = (error * tp) + (ti * d) + (td * i); 
 }
