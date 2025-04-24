@@ -1,49 +1,67 @@
 #include "Adafruit_VL53L0X.h"
 #include <Servo.h>
 
-Servo servo; 
+Servo servo;
 
 Adafruit_VL53L0X laser = Adafruit_VL53L0X();
 float error = 0;
-float maped_value = 0;
 float pid = 0;
-float p = 0, i = 0, d = 0, u = 0;
-float distanse = 170;
-float tp = 0.15;
-float ti = 0.5; 
-float td = 0.15; 
+float mapped_val = 67;
+float i = 0, d = 0;
+float distanse = 180;
+float filt_pid = 0;
+float alp = 0.2;
+float kp = 5.0;
+float ki = 0.1;
+float kd = 50.0;
+float lasterr = 0;
+float flt_varde;
 
 void setup() {
   Serial.begin(115200);
   servo.attach(10);
-  pinMode(10, OUTPUT); 
-  
-  while (!Serial) {
-    delay(1);
-  }
+  servo.write(mapped_val);
+  delay(200);
+  pinMode(10, OUTPUT);
+
   if (!laser.begin()) {
     while (1)
       ;
   }
-  Serial.println(F("VL53L0X API Simple Ranging example\n\n"));
+  Serial.println(F("systemet startar"));
 }
 
 void loop() {
-  servo.write(map(update(), -130, 130, 120, 0));
-  delay(50);
+  filt_pid = 1 * update() + (1 - 1) * filt_pid;
+  mapped_val = map(filt_pid, -100, 100, 75, 56);
+  servo.write(mapped_val);
+  delay(10);
 }
 
 float update() {
   VL53L0X_RangingMeasurementData_t varde;
   laser.rangingTest(&varde, false);
+
   if (varde.RangeStatus != 4) {
-    error = (varde.RangeMilliMeter - distanse)/10;
-    if error > 300 /* låg pass filter, ksk högpass */
-   
+      flt_varde = 0.5 * varde.RangeMilliMeter + (1 - 0.5) * flt_varde;
+    error = (flt_varde - distanse) / 10;
   }
 
-  d = (error - (varde.RangeMilliMeter - 20)/10);
+  d = (error - lasterr);
   i += (error);
+  pid = (error * kp) + (ki * i) + (kd * d);
+
+  if (pid > 150) pid = 150;
+  if (pid < -150) pid = -150;
+
+  lasterr = error;
+
+  Serial.print("Error: ");
+  Serial.println(error);
+  Serial.print("PID: ");
   Serial.println(pid);
-  return pid = (error * tp) + (ti * d) + (td * i); 
+  Serial.print("avstånd");
+  Serial.println(varde.RangeMilliMeter);
+  Serial.println("-------------------");
+  return pid;
 }
